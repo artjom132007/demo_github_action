@@ -1,24 +1,31 @@
-name: Check remote hosts and push reports
+name: Check tabs
 
 on:
-  push:
+  pull_request:
     branches:
-    - main
+      - main
 
 jobs:
-  prepare:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-          check-sites: [onliner.by, google.com, github.com]
+  build:
+    runs-on: ubuntu-latest  
+    name: Test changed-files
     steps:
-      - name: Install netcat
-        run: sudo apt update && sudo apt install -y netcat
-      - run: echo "netcat has been installed"
-      - run: |
-          nc -z -v -w2 ${{ matrix.check-sites }} 443 > ${{ matrix.check-sites }}.log 2>&1
-          ls -la
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v14.1
+
+      - name: List all changed files
+        run: |
+          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+            echo "$file was changed" >> files.log 2>&1
+            echo "Count Tab in files: `grep -P '\t' $file | wc -l`" >> files.log 2>&1 
+          done
+
       - name: Upload report
         uses: actions/upload-artifact@v2
         with:
-          path: ${{ matrix.check-sites }}.log
+          path: files.log
